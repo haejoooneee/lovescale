@@ -3,10 +3,32 @@ import pandas as pd
 import os
 from datetime import datetime
 import plotly.express as px
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # 파일 경로
 DATA_FILE = "lovescale_data.csv"
+
+# 한글 감정 키워드 (확장 가능)
+positive_words = ["좋다", "사랑", "행복", "기쁘", "웃", "감사", "괜찮", "따뜻", "즐겁", "고맙"]
+negative_words = ["힘들", "짜증", "불안", "우울", "싫", "외롭", "화나", "슬프", "눈물", "지치"]
+
+# 감정 분석 함수
+def korean_sentiment_score(text):
+    if "없음" in text or "모르겠" in text:
+        return 0
+    score = 0
+    for w in positive_words:
+        if w in text:
+            score += 1
+    for w in negative_words:
+        if w in text:
+            score -= 1
+    # 점수 정규화 (-1 ~ +1)
+    if score > 0:
+        return min(score / 3, 1)
+    elif score < 0:
+        return max(score / 3, -1)
+    else:
+        return 0
 
 # 페이지 설정
 st.set_page_config(page_title="💔 헤어짐의 저울질 (LoveScale)", layout="centered")
@@ -21,9 +43,6 @@ if os.path.exists(DATA_FILE):
         df["감정 점수"] = 0
 else:
     df = pd.DataFrame(columns=["날짜", "좋은 점", "힘들었던 점", "감정 점수"])
-
-# 감정 분석기
-analyzer = SentimentIntensityAnalyzer()
 
 # 세션 초기화
 if "positive_hidden" not in st.session_state:
@@ -80,24 +99,16 @@ if st.button("감정 분석 및 저장"):
     if not positive and not negative:
         st.warning("감정을 입력해주세요 💬")
     else:
-        # 분석 결과
-        pos_score = analyzer.polarity_scores(positive)["compound"] if "없음" not in positive else 0
-        neg_score = analyzer.polarity_scores(negative)["compound"] if "없음" not in negative else 0
+        # 감정 점수 계산
+        pos_score = korean_sentiment_score(positive)
+        neg_score = korean_sentiment_score(negative)
 
-        # 감정 보정 (가중치 확대)
-        pos_score *= 2
-        neg_score *= 2
-
-        # 감정이 하나라도 입력된 경우
         if "없음" in positive and "없음" not in negative:
             score = -abs(neg_score)
         elif "없음" in negative and "없음" not in positive:
             score = pos_score
         else:
             score = pos_score - abs(neg_score)
-
-        # 스케일 제한 (-1 ~ +1)
-        score = max(min(score, 1.0), -1.0)
 
         today = datetime.now().strftime("%Y-%m-%d")
 
@@ -115,14 +126,14 @@ if st.button("감정 분석 및 저장"):
         st.subheader("🧭 감정 분석 결과")
         st.write(f"📊 **감정 지수:** {score:.2f}")
 
-        if score >= 0.7:
-            st.success("🌞 매우 긍정적인 하루였어요! 사랑과 행복이 느껴집니다.")
+        if score >= 0.6:
+            st.success("🌞 매우 긍정적인 하루였어요! 사랑과 행복이 가득하네요.")
         elif score >= 0.3:
-            st.info("😊 긍정적인 하루였어요. 좋은 감정이 이어지고 있어요.")
+            st.info("😊 좋은 하루였어요. 따뜻한 감정이 느껴집니다.")
         elif -0.3 < score < 0.3:
-            st.warning("⚖️ 감정이 균형을 이루고 있습니다. 차분히 마음을 살펴보세요.")
-        elif score <= -0.3 and score > -0.7:
-            st.error("😢 약간 힘든 하루였어요. 자신을 돌봐주세요.")
+            st.warning("⚖️ 균형 잡힌 감정 상태예요. 마음을 천천히 살펴보세요.")
+        elif score <= -0.3 and score > -0.6:
+            st.error("😢 조금 힘든 하루였어요. 자신을 돌봐주세요.")
         else:
             st.error("💔 감정이 많이 지쳐있어요. 잠시 쉬어가도 괜찮아요.")
 
