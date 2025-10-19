@@ -1,28 +1,49 @@
 import streamlit as st
 import pandas as pd
+import json
 import os
 from datetime import datetime
 import plotly.express as px
 
 # 파일 경로
 DATA_FILE = "lovescale_data.csv"
+DICT_FILE = "emotion_dict.json"
 
-# 한글 감정 키워드 (확장 가능)
-positive_words = ["좋다", "사랑", "행복", "기쁘", "웃", "감사", "괜찮", "따뜻", "즐겁", "고맙"]
-negative_words = ["힘들", "짜증", "불안", "우울", "싫", "외롭", "화나", "슬프", "눈물", "지치"]
+# -------------------------------
+# JSON 감정 사전 불러오기
+# -------------------------------
+if os.path.exists(DICT_FILE):
+    with open(DICT_FILE, "r", encoding="utf-8") as f:
+        emotion_dict = json.load(f)
+else:
+    st.error("⚠️ emotion_dict.json 파일을 찾을 수 없습니다.")
+    st.stop()
 
+positive_words = emotion_dict["positive"]
+negative_words = emotion_dict["negative"]
+neg_prefix = emotion_dict["neg_prefix"]
+
+# -------------------------------
 # 감정 분석 함수
+# -------------------------------
 def korean_sentiment_score(text):
-    if "없음" in text or "모르겠" in text:
+    if not text or "없음" in text or "모르겠" in text:
         return 0
+
     score = 0
-    for w in positive_words:
-        if w in text:
-            score += 1
-    for w in negative_words:
-        if w in text:
+    for word in positive_words:
+        if any(neg + word in text for neg in neg_prefix):  # “안 좋다” → 부정
             score -= 1
-    # 점수 정규화 (-1 ~ +1)
+        elif word in text:
+            score += 1
+
+    for word in negative_words:
+        if any(neg + word in text for neg in neg_prefix):  # “안 힘들다” → 긍정
+            score += 1
+        elif word in text:
+            score -= 1
+
+    # 정규화 (-1 ~ +1)
     if score > 0:
         return min(score / 3, 1)
     elif score < 0:
@@ -30,10 +51,12 @@ def korean_sentiment_score(text):
     else:
         return 0
 
-# 페이지 설정
+# -------------------------------
+# Streamlit UI
+# -------------------------------
 st.set_page_config(page_title="💔 헤어짐의 저울질 (LoveScale)", layout="centered")
 st.title("💔 헤어짐의 저울질 (LoveScale)")
-st.write("AI가 감정의 흐름을 함께 살펴보고, 관계의 온도를 시각화합니다.")
+st.write("AI가 감정의 흐름을 살펴보고, 관계의 온도를 시각화합니다.")
 st.divider()
 
 # 데이터 불러오기
@@ -44,24 +67,19 @@ if os.path.exists(DATA_FILE):
 else:
     df = pd.DataFrame(columns=["날짜", "좋은 점", "힘들었던 점", "감정 점수"])
 
-# 세션 초기화
-if "positive_hidden" not in st.session_state:
-    st.session_state["positive_hidden"] = False
-if "negative_hidden" not in st.session_state:
-    st.session_state["negative_hidden"] = False
-if "positive_text" not in st.session_state:
-    st.session_state["positive_text"] = ""
-if "negative_text" not in st.session_state:
-    st.session_state["negative_text"] = ""
+# 세션 상태 초기화
+for key in ["positive_hidden", "negative_hidden", "positive_text", "negative_text"]:
+    if key not in st.session_state:
+        st.session_state[key] = False if "hidden" in key else ""
 
 # -------------------------------
-# 📔 감정 입력
+# 📔 감정 입력 영역
 # -------------------------------
 st.header("📔 오늘의 감정 일기")
 
 col1, col2 = st.columns(2)
 
-# 좋은 점 입력창
+# 좋은 점 입력
 with col1:
     st.markdown("**좋은 점 💕**")
     if st.session_state["positive_hidden"]:
@@ -75,7 +93,7 @@ with col1:
             st.session_state["positive_hidden"] = True
             st.rerun()
 
-# 힘들었던 점 입력창
+# 힘들었던 점 입력
 with col2:
     st.markdown("**힘들었던 점 💔**")
     if st.session_state["negative_hidden"]:
@@ -99,7 +117,6 @@ if st.button("감정 분석 및 저장"):
     if not positive and not negative:
         st.warning("감정을 입력해주세요 💬")
     else:
-        # 감정 점수 계산
         pos_score = korean_sentiment_score(positive)
         neg_score = korean_sentiment_score(negative)
 
@@ -121,17 +138,17 @@ if st.button("감정 분석 및 저장"):
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
 
-        # ---------------- 결과 표시 ----------------
         st.success("오늘의 감정 일기가 저장되었습니다 💾")
         st.subheader("🧭 감정 분석 결과")
         st.write(f"📊 **감정 지수:** {score:.2f}")
 
+        # 감정 해석
         if score >= 0.6:
-            st.success("🌞 매우 긍정적인 하루였어요! 사랑과 행복이 가득하네요.")
+            st.success("🌞 매우 긍정적인 하루였어요! 사랑과 행복이 가득합니다.")
         elif score >= 0.3:
             st.info("😊 좋은 하루였어요. 따뜻한 감정이 느껴집니다.")
         elif -0.3 < score < 0.3:
-            st.warning("⚖️ 균형 잡힌 감정 상태예요. 마음을 천천히 살펴보세요.")
+            st.warning("⚖️ 감정이 균형을 이루고 있습니다. 마음을 천천히 살펴보세요.")
         elif score <= -0.3 and score > -0.6:
             st.error("😢 조금 힘든 하루였어요. 자신을 돌봐주세요.")
         else:
@@ -152,3 +169,4 @@ if not df.empty:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("아직 데이터가 없습니다 💬")
+
