@@ -48,8 +48,66 @@ def korean_sentiment_score(text):
 # 🧍 사용자 이름 입력
 # =============================
 st.set_page_config(page_title="💔 헤어짐의 저울질", layout="centered")
+
+# 🎀 CSS 스타일 정의
+custom_style = """
+<style>
+/* 전체 배경 */
+[data-testid="stAppViewContainer"] {
+    background-color: white;
+    border: 10px solid #ffb6c1; /* 연핑크 테두리 */
+    border-radius: 20px;
+    padding: 30px;
+}
+
+/* 제목, 텍스트 컬러 및 폰트 */
+h1, h2, h3, h4, h5, h6, p, div, label {
+    font-family: 'Comic Sans MS', 'Cute Font', 'Nanum Pen Script', cursive;
+    color: #444444;
+}
+
+/* 입력란 */
+textarea, input {
+    border: 2px solid #ffb6c1 !important;
+    border-radius: 10px !important;
+    background-color: #fffafc !important;
+    font-family: 'Comic Sans MS', 'Cute Font', cursive !important;
+}
+
+/* 버튼 스타일 */
+button[kind="primary"] {
+    background-color: #ffb6c1 !important;
+    color: white !important;
+    border-radius: 10px !important;
+}
+
+/* 헤더 여백 줄이기 */
+[data-testid="stHeader"] {
+    background: rgba(0,0,0,0);
+}
+
+/* 마스코트 이미지 */
+.mascot {
+    width: 90px;
+    border-radius: 50%;
+    margin-top: 10px;
+}
+</style>
+"""
+st.markdown(custom_style, unsafe_allow_html=True)
+
+# =============================
+# 🐱 헤더 및 마스코트
+# =============================
 st.title("💔 헤어짐의 저울질 (LoveScale)")
 st.write("AI 없이도 감정의 흐름을 스스로 살펴볼 수 있는 감정 일기입니다.")
+
+st.image(
+    "https://images.unsplash.com/photo-1601758124511-8eaff56b6b8b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzMjM4NDZ8MHwxfGFsbHwxfHx8fHx8fHwxNjg3MDAwMDAw&ixlib=rb-4.0.3&q=80&w=400",
+    caption="🐾 감정일기의 마스코트",
+    width=100,
+)
+
 st.divider()
 
 user_name = st.text_input("당신의 이름을 입력하세요 ✍️", placeholder="예: 혜림, 현우, 나 자신 등", key="user_name")
@@ -74,13 +132,12 @@ else:
 # =============================
 st.header(f"📔 {user_name}님의 감정 일기")
 
-# ✅ 상태 초기화
 if "hide_positive" not in st.session_state:
     st.session_state.hide_positive = False
 if "hide_negative" not in st.session_state:
     st.session_state.hide_negative = False
 
-# ✅ 버튼 1회로 즉시 반영되게 함 (rerun 활용)
+# ✅ 1회 클릭만으로 숨김
 def hide_positive_now():
     st.session_state.hide_positive = True
     st.rerun()
@@ -89,7 +146,6 @@ def hide_negative_now():
     st.session_state.hide_negative = True
     st.rerun()
 
-# --- 좋은 점 ---
 col1, col2 = st.columns([4, 1])
 with col1:
     if not st.session_state.hide_positive:
@@ -100,7 +156,6 @@ with col1:
 with col2:
     st.button("없음(잘 모르겠음)", key="pos_none", on_click=hide_positive_now)
 
-# --- 힘들었던 점 ---
 col3, col4 = st.columns([4, 1])
 with col3:
     if not st.session_state.hide_negative:
@@ -131,17 +186,18 @@ if st.button("감정 분석 및 저장"):
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
 
-        st.success(f"오늘의 감정 일기가 저장되었습니다 💾 ({DATA_FILE})")
-
+        # 💡 감정별 배경색 동적 변경
         if score > 0:
-            st.subheader("✨ 현재 감정 상태: 긍정적")
-            st.info("좋은 감정이 더 많아요 💖 관계가 긍정적인 흐름이에요.")
+            st.markdown("<style>body {background-color: #fff0f5;}</style>", unsafe_allow_html=True)
+            st.success("✨ 오늘은 긍정적인 하루예요 💖")
         elif score < 0:
-            st.subheader("⚠️ 현재 감정 상태: 부정적")
-            st.info("감정적으로 지친 하루였어요. 자신을 돌봐주세요 🌧️")
+            st.markdown("<style>body {background-color: #e6e6fa;}</style>", unsafe_allow_html=True)
+            st.warning("⚠️ 오늘은 조금 지친 하루예요 🌧️")
         else:
-            st.subheader("⚖️ 현재 감정 상태: 균형")
-            st.info("좋고 힘든 감정이 비슷하거나 없어요. 차분한 하루네요.")
+            st.markdown("<style>body {background-color: #fdfdfd;}</style>", unsafe_allow_html=True)
+            st.info("⚖️ 오늘은 감정이 차분하네요.")
+
+        st.success(f"오늘의 감정 일기가 저장되었습니다 💾 ({DATA_FILE})")
 
 
 # =============================
@@ -195,6 +251,4 @@ if st.button("감정 분석 도우미 실행"):
         st.error(" / ".join(df["힘들었던 점"].dropna().tolist()[-5:]))
 
 st.caption("💾 데이터는 각 사용자의 이름으로 개별 저장됩니다.")
-
-
 
