@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import os
 import json
@@ -29,14 +29,12 @@ def korean_sentiment_score(text):
         return 0
 
     score = 0
-    # 긍정 단어 분석
     for word in positive_words:
         if any((neg + word) in text for neg in neg_prefix):
             score -= 1
         elif word in text:
             score += 1
 
-    # 부정 단어 분석
     for word in negative_words:
         if any((neg + word) in text for neg in neg_prefix):
             score += 1
@@ -47,33 +45,49 @@ def korean_sentiment_score(text):
 
 
 # =============================
-# 📄 데이터 파일 설정
-# =============================
-DATA_FILE = "lovescale_data.csv"
-
-if os.path.exists(DATA_FILE):
-    df = pd.read_csv(DATA_FILE)
-else:
-    df = pd.DataFrame(columns=["날짜", "좋은 점", "힘들었던 점", "감정 점수"])
-
-# =============================
-# 🖥️ UI 설정
+# 🧍 사용자 이름 입력
 # =============================
 st.set_page_config(page_title="💔 헤어짐의 저울질", layout="centered")
 st.title("💔 헤어짐의 저울질 (LoveScale)")
 st.write("AI 없이도 감정의 흐름을 스스로 살펴볼 수 있는 감정 일기입니다.")
 st.divider()
 
+user_name = st.text_input("당신의 이름을 입력하세요 ✍️", placeholder="예: 혜림, 현우, 나 자신 등", key="user_name")
+
+if not user_name:
+    st.warning("이름을 입력해야 데이터를 저장할 수 있습니다.")
+    st.stop()
+
+# ✅ 사용자별 CSV 파일
+DATA_FILE = f"lovescale_data_{user_name}.csv"
+
+# =============================
+# 📄 데이터 파일 설정
+# =============================
+if os.path.exists(DATA_FILE):
+    df = pd.read_csv(DATA_FILE)
+else:
+    df = pd.DataFrame(columns=["날짜", "좋은 점", "힘들었던 점", "감정 점수"])
+
 # =============================
 # 📔 오늘의 감정 입력
 # =============================
-st.header("📔 오늘의 감정 일기")
+st.header(f"📔 {user_name}님의 감정 일기")
 
-# --- session_state 초기화 ---
+# ✅ 상태 초기화
 if "hide_positive" not in st.session_state:
     st.session_state.hide_positive = False
 if "hide_negative" not in st.session_state:
     st.session_state.hide_negative = False
+
+# ✅ 버튼 1회로 즉시 반영되게 함 (rerun 활용)
+def hide_positive_now():
+    st.session_state.hide_positive = True
+    st.rerun()
+
+def hide_negative_now():
+    st.session_state.hide_negative = True
+    st.rerun()
 
 # --- 좋은 점 ---
 col1, col2 = st.columns([4, 1])
@@ -84,8 +98,7 @@ with col1:
         positive = "없음(잘 모르겠음)"
         st.info("좋은 점이 ‘없음(잘 모르겠음)’으로 설정되었습니다.")
 with col2:
-    if st.button("없음(잘 모르겠음)", key="pos_none"):
-        st.session_state.hide_positive = True
+    st.button("없음(잘 모르겠음)", key="pos_none", on_click=hide_positive_now)
 
 # --- 힘들었던 점 ---
 col3, col4 = st.columns([4, 1])
@@ -96,8 +109,7 @@ with col3:
         negative = "없음(잘 모르겠음)"
         st.info("힘들었던 점이 ‘없음(잘 모르겠음)’으로 설정되었습니다.")
 with col4:
-    if st.button("없음(잘 모르겠음)", key="neg_none"):
-        st.session_state.hide_negative = True
+    st.button("없음(잘 모르겠음)", key="neg_none", on_click=hide_negative_now)
 
 
 # =============================
@@ -119,7 +131,7 @@ if st.button("감정 분석 및 저장"):
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
 
-        st.success("오늘의 감정 일기가 저장되었습니다 💾")
+        st.success(f"오늘의 감정 일기가 저장되었습니다 💾 ({DATA_FILE})")
 
         if score > 0:
             st.subheader("✨ 현재 감정 상태: 긍정적")
@@ -182,7 +194,7 @@ if st.button("감정 분석 도우미 실행"):
         st.write("**힘들었던 점 모음:**")
         st.error(" / ".join(df["힘들었던 점"].dropna().tolist()[-5:]))
 
-st.caption("💾 데이터는 이 컴퓨터에만 저장됩니다.")
+st.caption("💾 데이터는 각 사용자의 이름으로 개별 저장됩니다.")
 
 
 
