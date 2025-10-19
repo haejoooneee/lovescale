@@ -45,24 +45,25 @@ def korean_sentiment_score(text):
 
 
 # =============================
-# 🧍 사용자 이름 입력
+# 🎀 기본 설정
 # =============================
 st.set_page_config(page_title="💔 헤어짐의 저울질", layout="centered")
 
-# 🎀 CSS 스타일 정의
+# 💕 CSS 스타일
 custom_style = """
 <style>
-/* 전체 배경 */
+@import url('https://fonts.googleapis.com/css2?family=Jua&family=Poor+Story&family=Nanum+Pen+Script&display=swap');
+
 [data-testid="stAppViewContainer"] {
     background-color: white;
-    border: 10px solid #ffb6c1; /* 연핑크 테두리 */
+    border: 10px solid #ffb6c1;
     border-radius: 20px;
     padding: 30px;
 }
 
-/* 제목, 텍스트 컬러 및 폰트 */
-h1, h2, h3, h4, h5, h6, p, div, label {
-    font-family: 'Comic Sans MS', 'Cute Font', 'Nanum Pen Script', cursive;
+/* 폰트 */
+h1, h2, h3, h4, h5, h6, p, div, label, textarea, input, button {
+    font-family: 'Poor Story', 'Nanum Pen Script', 'Jua', sans-serif !important;
     color: #444444;
 }
 
@@ -71,7 +72,6 @@ textarea, input {
     border: 2px solid #ffb6c1 !important;
     border-radius: 10px !important;
     background-color: #fffafc !important;
-    font-family: 'Comic Sans MS', 'Cute Font', cursive !important;
 }
 
 /* 버튼 스타일 */
@@ -81,42 +81,32 @@ button[kind="primary"] {
     border-radius: 10px !important;
 }
 
-/* 헤더 여백 줄이기 */
+/* 헤더 투명화 */
 [data-testid="stHeader"] {
     background: rgba(0,0,0,0);
-}
-
-/* 마스코트 이미지 */
-.mascot {
-    width: 90px;
-    border-radius: 50%;
-    margin-top: 10px;
 }
 </style>
 """
 st.markdown(custom_style, unsafe_allow_html=True)
 
 # =============================
-# 🐱 헤더 및 마스코트
+# 🐶 마스코트
 # =============================
 st.title("💔 헤어짐의 저울질 (LoveScale)")
 st.write("AI 없이도 감정의 흐름을 스스로 살펴볼 수 있는 감정 일기입니다.")
-
-st.image(
-    "https://images.unsplash.com/photo-1601758124511-8eaff56b6b8b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzMjM4NDZ8MHwxfGFsbHwxfHx8fHx8fHwxNjg3MDAwMDAw&ixlib=rb-4.0.3&q=80&w=400",
-    caption="🐾 감정일기의 마스코트",
-    width=100,
-)
+st.image("a559d206-e711-4b4f-94b7-0d7166741167.png", width=120, caption="🐶 오늘의 마스코트")
 
 st.divider()
 
+# =============================
+# 🧍 사용자 이름 입력
+# =============================
 user_name = st.text_input("당신의 이름을 입력하세요 ✍️", placeholder="예: 혜림, 현우, 나 자신 등", key="user_name")
 
 if not user_name:
     st.warning("이름을 입력해야 데이터를 저장할 수 있습니다.")
     st.stop()
 
-# ✅ 사용자별 CSV 파일
 DATA_FILE = f"lovescale_data_{user_name}.csv"
 
 # =============================
@@ -137,7 +127,6 @@ if "hide_positive" not in st.session_state:
 if "hide_negative" not in st.session_state:
     st.session_state.hide_negative = False
 
-# ✅ 1회 클릭만으로 숨김
 def hide_positive_now():
     st.session_state.hide_positive = True
     st.rerun()
@@ -186,7 +175,6 @@ if st.button("감정 분석 및 저장"):
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
 
-        # 💡 감정별 배경색 동적 변경
         if score > 0:
             st.markdown("<style>body {background-color: #fff0f5;}</style>", unsafe_allow_html=True)
             st.success("✨ 오늘은 긍정적인 하루예요 💖")
@@ -251,4 +239,3 @@ if st.button("감정 분석 도우미 실행"):
         st.error(" / ".join(df["힘들었던 점"].dropna().tolist()[-5:]))
 
 st.caption("💾 데이터는 각 사용자의 이름으로 개별 저장됩니다.")
-
