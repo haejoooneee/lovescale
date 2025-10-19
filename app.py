@@ -64,7 +64,7 @@ custom_style = """
 /* 폰트 */
 h1, h2, h3, h4, h5, h6, p, div, label, textarea, input, button {
     font-family: 'Poor Story', 'Nanum Pen Script', 'Jua', sans-serif !important;
-    color: #444444;
+    color: #333333; /* 글자 더 진하게 */
 }
 
 /* 입력란 */
@@ -72,13 +72,15 @@ textarea, input {
     border: 2px solid #ffb6c1 !important;
     border-radius: 10px !important;
     background-color: #fffafc !important;
+    color: #333333 !important;   /* ✅ 글자색 진회색으로 */
 }
 
 /* 버튼 스타일 */
-button[kind="primary"] {
-    background-color: #ffb6c1 !important;
-    color: white !important;
+button[kind="primary"], .stButton>button {
+    background-color: #fdf2e9 !important;  /* ✅ 베이지톤 버튼 */
+    color: #333333 !important;             /* 버튼 글씨는 진한 회색 */
     border-radius: 10px !important;
+    border: 1px solid #ffb6c1 !important;
 }
 
 /* 헤더 투명화 */
@@ -239,5 +241,6 @@ if st.button("감정 분석 도우미 실행"):
         st.error(" / ".join(df["힘들었던 점"].dropna().tolist()[-5:]))
 
 st.caption("💾 데이터는 각 사용자의 이름으로 개별 저장됩니다.")
+
 
 
