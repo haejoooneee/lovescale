@@ -94,7 +94,7 @@ st.markdown(custom_style, unsafe_allow_html=True)
 # =============================
 st.title("💔 헤어짐의 저울질 (LoveScale)")
 st.write("AI 없이도 감정의 흐름을 스스로 살펴볼 수 있는 감정 일기입니다.")
-st.image("a559d206-e711-4b4f-94b7-0d7166741167.png", width=120, caption="🐶 오늘의 마스코트")
+st.image("images/dog.jpg", width=120, caption="🐶 오늘의 마스코트")
 
 st.divider()
 
@@ -239,3 +239,4 @@ if st.button("감정 분석 도우미 실행"):
         st.error(" / ".join(df["힘들었던 점"].dropna().tolist()[-5:]))
 
 st.caption("💾 데이터는 각 사용자의 이름으로 개별 저장됩니다.")
+
