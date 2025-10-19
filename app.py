@@ -14,7 +14,7 @@ st.title("💔 헤어짐의 저울질 (LoveScale)")
 st.write("AI가 감정의 흐름을 함께 살펴보고, 관계의 온도를 시각화합니다.")
 st.divider()
 
-# 기존 데이터 불러오기
+# 데이터 불러오기
 if os.path.exists(DATA_FILE):
     df = pd.read_csv(DATA_FILE)
     if "감정 점수" not in df.columns:
@@ -25,35 +25,44 @@ else:
 # 감정 분석기
 analyzer = SentimentIntensityAnalyzer()
 
-# -----------------------------
-# 📔 오늘의 감정 일기 입력 구역
-# -----------------------------
+# -------------------------------
+# 📔 오늘의 감정 일기
+# -------------------------------
 st.header("📔 오늘의 감정 일기")
+
 col1, col2 = st.columns(2)
 
 with col1:
-    positive = st.text_area("좋았던 점 💕", placeholder="예: 함께 웃었던 대화가 즐거웠어요")
-    if st.button("없음 / 잘 모르겠음 (좋은 점)"):
-        positive = "없음"
+    st.markdown("**좋은 점 💕**")
+    positive = st.text_area(" ", placeholder="예: 함께 웃었던 대화가 즐거웠어요", key="positive_text")
+    if st.button("없음(잘 모르겠음)", key="pos_btn"):
+        positive = "없음(잘 모르겠음)"
+        st.session_state.positive_text = positive
+        st.experimental_rerun()
 
 with col2:
-    negative = st.text_area("힘들었던 점 💔", placeholder="예: 대화가 자주 끊겨서 답답했어요")
-    if st.button("없음 / 잘 모르겠음 (나쁜 점)"):
-        negative = "없음"
+    st.markdown("**힘들었던 점 💔**")
+    negative = st.text_area(" ", placeholder="예: 대화가 자주 끊겨서 답답했어요", key="negative_text")
+    if st.button("없음(잘 모르겠음)", key="neg_btn"):
+        negative = "없음(잘 모르겠음)"
+        st.session_state.negative_text = negative
+        st.experimental_rerun()
 
-# 감정 분석 및 저장
+# -------------------------------
+# 💾 감정 분석 및 저장
+# -------------------------------
 if st.button("감정 분석 및 저장"):
     if not positive and not negative:
         st.warning("감정을 입력해주세요 💬")
     else:
-        # 감정 분석 (긍정 / 부정 분리 계산)
+        # 감정 분석 분리 계산
         pos_score = analyzer.polarity_scores(positive)["compound"] if positive else 0
         neg_score = analyzer.polarity_scores(negative)["compound"] if negative else 0
 
-        # "없음" / "잘 모르겠음" → 중립 처리
-        if "없음" in positive or "모르겠" in positive:
+        # 없음(잘 모르겠음)은 중립 처리 (0)
+        if "없음" in positive:
             pos_score = 0
-        if "없음" in negative or "모르겠" in negative:
+        if "없음" in negative:
             neg_score = 0
 
         # 감정 점수 계산
@@ -73,6 +82,9 @@ if st.button("감정 분석 및 저장"):
         # 결과 표시
         st.success("오늘의 감정 일기가 저장되었습니다 💾")
         st.subheader("🧭 감정 분석 결과")
+
+        st.write(f"📊 **감정 지수:** {score:.2f}")
+
         if score > 0.3:
             st.success("긍정적인 하루였어요 💖 좋은 에너지가 느껴집니다.")
         elif score < -0.3:
@@ -82,9 +94,9 @@ if st.button("감정 분석 및 저장"):
 
 st.divider()
 
-# -----------------------------
-# ✏️ 기록 관리 (수정 / 삭제)
-# -----------------------------
+# -------------------------------
+# ✏️ 기록 관리
+# -------------------------------
 st.header("✏️ 기록 관리 (수정 및 삭제)")
 if not df.empty:
     edit_date = st.selectbox("수정 또는 삭제할 날짜 선택", df["날짜"].unique())
@@ -98,7 +110,6 @@ if not df.empty:
             df.loc[df["날짜"] == edit_date, ["좋은 점", "힘들었던 점"]] = [new_pos, new_neg]
             df.to_csv(DATA_FILE, index=False, encoding="utf-8-sig")
             st.success("수정이 저장되었습니다 ✅")
-
     with col2:
         if st.button("🗑️ 삭제"):
             df = df[df["날짜"] != edit_date]
@@ -109,9 +120,9 @@ else:
 
 st.divider()
 
-# -----------------------------
-# 📈 감정 변화 추이 그래프
-# -----------------------------
+# -------------------------------
+# 📈 감정 변화 그래프
+# -------------------------------
 st.header("📊 감정 변화 추이")
 if not df.empty:
     df["날짜"] = pd.to_datetime(df["날짜"])
@@ -122,20 +133,21 @@ else:
 
 st.divider()
 
-# -----------------------------
+# -------------------------------
 # 🧠 도와줘!! 버튼
-# -----------------------------
+# -------------------------------
 st.header("🆘 도와줘!! (AI 감정 요약 도우미)")
 if st.button("도와줘!!"):
     if len(df) < 2:
         st.info("데이터가 부족해요 😅 2회 이상 기록이 필요합니다.")
     else:
-        # 최근 감정 vs 평균 감정 비교
         recent = df.iloc[-1]["감정 점수"]
         past_avg = df["감정 점수"].head(len(df)-1)["감정 점수"].mean()
         diff = recent - past_avg
 
         st.subheader("📈 감정 지수 변화")
+        st.write(f"최근 감정 지수: **{recent:.2f}**, 과거 평균: **{past_avg:.2f}**")
+
         if diff > 0.1:
             st.success("최근 감정 지수가 상승했습니다 ⬆️ 긍정적인 흐름이에요.")
         elif diff < -0.1:
@@ -143,14 +155,12 @@ if st.button("도와줘!!"):
         else:
             st.info("감정 변화가 거의 없어요 😐 안정적인 상태예요.")
 
-        # 관계 요약
         st.subheader("📘 관계 종합 요약")
         most_positive = df["좋은 점"].value_counts().index[0] if not df["좋은 점"].isnull().all() else "데이터 없음"
         most_negative = df["힘들었던 점"].value_counts().index[0] if not df["힘들었던 점"].isnull().all() else "데이터 없음"
         st.write(f"💖 **가장 자주 등장한 좋은 점:** {most_positive}")
         st.write(f"💔 **가장 자주 등장한 힘들었던 점:** {most_negative}")
 
-        # 감정 비율
         st.subheader("⚖️ 감정 분포 비율")
         sentiment_counts = {
             "긍정": (df["감정 점수"] > 0.3).sum(),
