@@ -25,6 +25,12 @@ else:
 # 감정 분석기
 analyzer = SentimentIntensityAnalyzer()
 
+# 세션 초기화
+if "positive_text" not in st.session_state:
+    st.session_state["positive_text"] = ""
+if "negative_text" not in st.session_state:
+    st.session_state["negative_text"] = ""
+
 # -------------------------------
 # 📔 오늘의 감정 일기
 # -------------------------------
@@ -34,24 +40,25 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("**좋은 점 💕**")
-    positive = st.text_area(" ", placeholder="예: 함께 웃었던 대화가 즐거웠어요", key="positive_text")
+    positive = st.text_area(" ", value=st.session_state["positive_text"], placeholder="예: 함께 웃었던 대화가 즐거웠어요", key="pos_input")
     if st.button("없음(잘 모르겠음)", key="pos_btn"):
-        positive = "없음(잘 모르겠음)"
-        st.session_state.positive_text = positive
-        st.experimental_rerun()
+        st.session_state["positive_text"] = "없음(잘 모르겠음)"
+        st.rerun()
 
 with col2:
     st.markdown("**힘들었던 점 💔**")
-    negative = st.text_area(" ", placeholder="예: 대화가 자주 끊겨서 답답했어요", key="negative_text")
+    negative = st.text_area(" ", value=st.session_state["negative_text"], placeholder="예: 대화가 자주 끊겨서 답답했어요", key="neg_input")
     if st.button("없음(잘 모르겠음)", key="neg_btn"):
-        negative = "없음(잘 모르겠음)"
-        st.session_state.negative_text = negative
-        st.experimental_rerun()
+        st.session_state["negative_text"] = "없음(잘 모르겠음)"
+        st.rerun()
 
 # -------------------------------
 # 💾 감정 분석 및 저장
 # -------------------------------
 if st.button("감정 분석 및 저장"):
+    positive = st.session_state["positive_text"] or positive
+    negative = st.session_state["negative_text"] or negative
+
     if not positive and not negative:
         st.warning("감정을 입력해주세요 💬")
     else:
@@ -127,6 +134,7 @@ st.header("📊 감정 변화 추이")
 if not df.empty:
     df["날짜"] = pd.to_datetime(df["날짜"])
     fig = px.line(df, x="날짜", y="감정 점수", title="📈 감정 변화 그래프", markers=True)
+    fig.add_hline(y=0, line_dash="dot", line_color="gray")
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("아직 데이터가 없습니다 💬")
